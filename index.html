@@ -63,6 +63,23 @@
     padding:12px 34px; text-transform:lowercase;
   }
 
+  /* ---------- In-app browser warning (Messenger, Zalo, TikTok...) ---------- */
+  #browser-warning{
+    position:fixed; inset:0; z-index:60;
+    background:var(--bg);
+    display:none; /* switched to flex by JS when an in-app browser is detected */
+    flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:32px;
+    gap:16px;
+  }
+  #browser-warning .icon{ font-size:32px; }
+  #browser-warning p{ color:var(--muted); font-size:13.5px; line-height:1.6; max-width:300px; }
+  #browser-warning .open-btn{
+    margin-top:6px; font-size:14px; color:var(--bg); background:var(--ink);
+    border:none; border-radius:999px; padding:12px 28px; font-weight:600;
+  }
+  #browser-warning .hint{ font-size:11.5px; color:var(--accent); }
+
   /* ---------- Card ---------- */
   .card{
     position:relative; z-index:1;
@@ -209,6 +226,14 @@
     <div class="enter-btn">chạm để vào</div>
   </div>
 
+  <!-- Shown instead of the gate when opened inside an in-app browser (Messenger, Zalo, TikTok...) -->
+  <div id="browser-warning">
+    <div class="icon">⚠️</div>
+    <p>Trang này cần mở bằng trình duyệt thật (Chrome, Safari...) để nhạc và hiệu ứng chạy đúng.</p>
+    <button class="open-btn" id="openInBrowserBtn">Mở bằng trình duyệt</button>
+    <div class="hint">Hoặc chạm vào ⋮ / ⋯ ở góc trên rồi chọn "Mở bằng trình duyệt"</div>
+  </div>
+
   <!-- Background music: đặt tên file mp3 của bạn vào src bên dưới -->
   <audio id="bgAudio" loop>
     <source src="Malcolm Todd - Earrings - (320 Kbps).mp3" type="audio/mpeg">
@@ -261,6 +286,31 @@
   </main>
 
 <script>
+  // ---- Detect in-app browsers (Messenger, Zalo, TikTok, Instagram, Facebook...) ----
+  // These embedded webviews often block audio autoplay, motion sensors, or the YouTube API.
+  const ua = navigator.userAgent || '';
+  const isInAppBrowser = /FBAN|FBAV|FB_IAB|Instagram|Line\/|Zalo|TikTok|MicroMessenger|wv\)/i.test(ua);
+
+  if (isInAppBrowser) {
+    document.getElementById('enter-gate').style.display = 'none';
+    const warning = document.getElementById('browser-warning');
+    warning.style.display = 'flex';
+
+    document.getElementById('openInBrowserBtn').addEventListener('click', () => {
+      const url = window.location.href;
+      const isAndroid = /Android/i.test(ua);
+      if (isAndroid) {
+        // Android: intent link forces the page to open in Chrome outside the in-app webview
+        const intentUrl = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end';
+        window.location.href = intentUrl;
+      } else {
+        // iOS in-app browsers can't be force-redirected by script; copy the link so the person can paste it into Safari
+        navigator.clipboard?.writeText(url).catch(() => {});
+        alert('Đã sao chép link. Hãy dán vào Safari để mở (hoặc chạm ⋯ ở góc trên và chọn "Mở bằng trình duyệt").');
+      }
+    });
+  }
+
   // ---- Edit these to change the "now playing" info ----
   document.getElementById('trackTitle').textContent = 'Earrings';
   document.getElementById('trackArtist').textContent = 'Malcolm Todd';
