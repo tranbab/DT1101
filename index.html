@@ -197,7 +197,7 @@
 
   <!-- Background video (visual only — no sound). Put your own hosted mp4 in src="" below, or leave empty for the gradient fallback. -->
   <video class="bg-video" id="bgVideo" autoplay muted loop playsinline>
-    <source src="Malcolm Todd - Earrings - (320 Kbps).mp3" type="video/mp4">
+    <source src="" type="video/mp4">
   </video>
   <div class="bg-fallback"></div>
   <div class="bg-overlay"></div>
@@ -371,6 +371,40 @@
 
     card.addEventListener('mouseleave', () => {
       card.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1)';
+    });
+  }
+
+  // ---- Card tilt on phones: card leans the way you tilt the device ----
+  if (!prefersReducedMotion && !window.matchMedia('(hover: hover)').matches && window.DeviceOrientationEvent) {
+    const MAX_TILT_MOBILE = 14; // degrees
+    let baseBeta = null, baseGamma = null; // calibrate to the phone's resting angle
+
+    function handleOrientation(e){
+      if (e.beta === null || e.gamma === null) return;
+      if (baseBeta === null) { baseBeta = e.beta; baseGamma = e.gamma; } // first reading = "neutral" position
+
+      let diffBeta = e.beta - baseBeta;   // front/back tilt
+      let diffGamma = e.gamma - baseGamma; // left/right tilt
+
+      diffBeta = Math.max(-MAX_TILT_MOBILE, Math.min(MAX_TILT_MOBILE, diffBeta));
+      diffGamma = Math.max(-MAX_TILT_MOBILE, Math.min(MAX_TILT_MOBILE, diffGamma));
+
+      card.style.transform = `rotateX(${-diffBeta}deg) rotateY(${diffGamma}deg) scale(1.02)`;
+    }
+
+    function enableTilt(){
+      window.addEventListener('deviceorientation', handleOrientation);
+    }
+
+    // iOS 13+ requires an explicit permission request triggered by a user tap
+    gate.addEventListener('click', () => {
+      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission().then(state => {
+          if (state === 'granted') enableTilt();
+        }).catch(() => {});
+      } else {
+        enableTilt(); // Android and older browsers: no permission prompt needed
+      }
     });
   }
 </script>
