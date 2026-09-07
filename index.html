@@ -181,6 +181,17 @@
     width:3px; background:var(--accent); border-radius:2px; height:4px;
     transition:height .1s ease;
   }
+  .now-playing .controls{
+    display:flex; align-items:center; gap:2px; flex-shrink:0; margin-left:4px;
+  }
+  .now-playing .controls button{
+    width:26px; height:26px; border:none; background:transparent; color:var(--ink);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    border-radius:50%; padding:0;
+  }
+  .now-playing .controls button:hover{ background:rgba(255,255,255,0.1); }
+  .now-playing .controls svg{ width:14px; height:14px; }
+  #pauseIcon{ display:none; }
 
   /* ---------- Floating particle effect ---------- */
   #particles{
@@ -241,10 +252,8 @@
     <div class="hint">Hoặc chạm vào ⋮ / ⋯ ở góc trên rồi chọn "Mở bằng trình duyệt"</div>
   </div>
 
-  <!-- Background music: đặt tên file mp3 của bạn vào src bên dưới -->
-  <audio id="bgAudio" loop>
-    <source src="Malcolm Todd - Earrings - (320 Kbps).mp3" type="audio/mpeg">
-  </audio>
+  <!-- Background music: danh sách bài hát được khai báo trong PLAYLIST ở phần <script> bên dưới -->
+  <audio id="bgAudio"></audio>
 
   <main class="card">
     <img class="banner" src="image2.jpg" alt="Banner">
@@ -259,13 +268,25 @@
 
     <!-- Now playing: ảnh cover phải là link ẢNH thật (jpg/png), không phải link YouTube -->
     <div class="now-playing">
-      <img class="cover" src="https://i.ytimg.com/vi/S02J3QifNog/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLC0kGX1i09QzdgOtclnBnvYq1AAew" alt="Album Cover">
+      <img class="cover" src="" alt="Album Cover">
       <div class="info">
         <div class="track" id="trackTitle">Tên bài hát</div>
         <div class="artist" id="trackArtist">Tên ca sĩ</div>
       </div>
       <div class="eq" id="eqBars">
         <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <div class="controls">
+        <button id="prevBtn" aria-label="Bài trước">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+        </button>
+        <button id="playPauseBtn" aria-label="Dừng/Phát">
+          <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <svg id="pauseIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+        </button>
+        <button id="nextBtn" aria-label="Bài tiếp theo">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6v12l8.5-6z"/></svg>
+        </button>
       </div>
     </div>
 
@@ -317,10 +338,15 @@
       }
     });
   }
-
-  // ---- Edit these to change the "now playing" info ----
-  document.getElementById('trackTitle').textContent = 'Earrings';
-  document.getElementById('trackArtist').textContent = 'Malcolm Todd';
+// ---- Playlist and audio player logic ----
+  const PLAYLIST = [
+    { title: 'Biển Đảo Và Em Remix', artist: 'Quinvy', src: 'Biển Đảo Và Em Remix.mp3', cover: 'https://i.ytimg.com/vi/WmUGNBM4re0/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLDn4E6OIHNUM6zU4cN8SFHgne_Bmg' },
+    { title: 'In Love', artist: 'LowG', src: 'in love.mp3', cover: 'https://i.ytimg.com/vi/T7ksmtaVeOk/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLB6lnPJI8CKUAk6XpHYmfUTQIwKBQ' },
+    { title: 'SSD', artist: 'W/n', src: 'ssd.mp3', cover: 'https://i.ytimg.com/vi/7iG_k6-iCGA/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLCUZKt8VSHz26kpk5EZ1ZigJrD9Hg' }, 
+    { title: 'Làm Sao Để Em Tựa Vào', artist: 'SINO', src: 'Làm sao để em tựa vào.mp3', cover: 'https://i.ytimg.com/vi/17Uvfvq876g/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLBCRP1Ut-kEwkLsPmrSssvSaqs0NQ'},
+    { title: 'Earrings', artist: 'Malcolm Todd', src: 'Malcolm Todd - Earrings - (320 Kbps).mp3', cover: 'https://i.ytimg.com/vi/S02J3QifNog/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLC0kGX1i09QzdgOtclnBnvYq1AAew' },
+  ];
+  let currentTrack = 0;
 
   // Simple local view counter (per-browser, stored in memory only for this session)
   let views = 1;
@@ -331,6 +357,35 @@
   const video = document.getElementById('bgVideo');
   const audio = document.getElementById('bgAudio');
   const eqBars = document.querySelectorAll('#eqBars span');
+  const coverImg = document.querySelector('.now-playing .cover');
+  const playIcon = document.getElementById('playIcon');
+  const pauseIcon = document.getElementById('pauseIcon');
+
+  function loadTrack(index, autoplay){
+    currentTrack = (index + PLAYLIST.length) % PLAYLIST.length; // quay vòng đầu/cuối danh sách
+    const t = PLAYLIST[currentTrack];
+    audio.src = t.src;
+    document.getElementById('trackTitle').textContent = t.title;
+    document.getElementById('trackArtist').textContent = t.artist;
+    coverImg.src = t.cover || '';
+    if (autoplay) audio.play().catch(() => {});
+  }
+  loadTrack(0, false); // nạp bài đầu tiên (chưa phát, chờ người dùng bấm "chạm để vào")
+
+  function updatePlayIcon(){
+    const playing = !audio.paused && !audio.ended;
+    playIcon.style.display = playing ? 'none' : 'block';
+    pauseIcon.style.display = playing ? 'block' : 'none';
+  }
+  audio.addEventListener('play', updatePlayIcon);
+  audio.addEventListener('pause', updatePlayIcon);
+  audio.addEventListener('ended', () => loadTrack(currentTrack + 1, true)); // hết bài -> tự chuyển bài tiếp theo
+
+  document.getElementById('playPauseBtn').addEventListener('click', () => {
+    if (audio.paused) audio.play().catch(() => {}); else audio.pause();
+  });
+  document.getElementById('nextBtn').addEventListener('click', () => loadTrack(currentTrack + 1, true));
+  document.getElementById('prevBtn').addEventListener('click', () => loadTrack(currentTrack - 1, true));
 
   let audioCtx, analyser, dataArray, sourceNode;
 
